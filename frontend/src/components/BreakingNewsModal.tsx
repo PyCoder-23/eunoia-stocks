@@ -71,7 +71,7 @@ export const BreakingNewsModal: React.FC = () => {
             initial={{ x: 100, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: 100, opacity: 0 }}
-            className="p-5 rounded-2xl glass-card border-l-4 border-l-emerald-400 border border-slate-800/80 shadow-2xl relative overflow-hidden"
+            className="p-5 rounded-2xl bg-slate-950/95 backdrop-blur-xl border-l-4 border-l-emerald-400 border border-slate-700 shadow-[0_10px_40px_rgba(0,0,0,0.6)] relative overflow-hidden"
           >
             <button
               onClick={clearNewsAlert}
