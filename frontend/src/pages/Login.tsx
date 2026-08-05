@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
-import { TrendingUp, ShieldAlert, Lock, User, ArrowRight, Sparkles, AlertCircle } from 'lucide-react';
+import { TrendingUp, ShieldAlert, Lock, User, ArrowRight, AlertCircle } from 'lucide-react';
 
 export const Login: React.FC = () => {
   const [username, setUsername] = useState('');

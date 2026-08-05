@@ -210,7 +210,6 @@ export const Portfolio: React.FC = () => {
               </thead>
               <tbody className="divide-y divide-slate-800/60 text-sm">
                 {holdings.map((h) => {
-                  const isPositive = h.unrealizedPL >= 0;
                   const hasLong = h.shares > 0;
                   const hasShort = h.shortShares > 0;
                   
