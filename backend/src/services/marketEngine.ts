@@ -11,7 +11,7 @@ let tickInterval: NodeJS.Timeout | null = null;
 export const startMarketEngine = (): void => {
   if (tickInterval) clearInterval(tickInterval);
 
-  console.log('📈 Starting Market Mayhem Real-Time Simulation Engine (Tick: 3000ms)...');
+  console.log('📈 Starting Market Mayhem Real-Time Simulation Engine (Tick: 4000ms)...');
 
   tickInterval = setInterval(async () => {
     try {
@@ -20,7 +20,7 @@ export const startMarketEngine = (): void => {
     } catch (error) {
       console.error('❌ Error in market tick loop:', error);
     }
-  }, 3000);
+  }, 4000);
 };
 
 export const stopMarketEngine = (): void => {
