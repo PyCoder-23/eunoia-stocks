@@ -31,6 +31,8 @@ export const portfolios = sqliteTable('portfolios', {
   companyId: text('company_id').notNull().references(() => companies.id, { onDelete: 'cascade' }),
   shares: integer('shares').notNull().default(0),
   averagePrice: real('average_price').notNull().default(0.0),
+  shortShares: integer('short_shares').notNull().default(0),
+  shortAveragePrice: real('short_average_price').notNull().default(0.0),
 });
 
 export const transactions = sqliteTable('transactions', {
@@ -65,6 +67,17 @@ export const gameState = sqliteTable('game_state', {
   marketTrend: text('market_trend').notNull().default('STABLE'), // 'STABLE', 'BULLISH', 'BEARISH', 'CRASHING', 'BOOMING'
 });
 
+export const orders = sqliteTable('orders', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  companyId: text('company_id').notNull().references(() => companies.id, { onDelete: 'cascade' }),
+  type: text('type').notNull(), // 'LIMIT_BUY', 'LIMIT_SELL', 'STOP_LOSS'
+  shares: integer('shares').notNull(),
+  targetPrice: real('target_price').notNull(),
+  status: text('status').notNull().default('PENDING'), // 'PENDING', 'EXECUTED', 'CANCELLED', 'FAILED'
+  timestamp: integer('timestamp').notNull(),
+});
+
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 export type Company = typeof companies.$inferSelect;
@@ -77,3 +90,5 @@ export type NewsEvent = typeof newsEvents.$inferSelect;
 export type NewNewsEvent = typeof newsEvents.$inferInsert;
 export type GameState = typeof gameState.$inferSelect;
 export type NewGameState = typeof gameState.$inferInsert;
+export type Order = typeof orders.$inferSelect;
+export type NewOrder = typeof orders.$inferInsert;

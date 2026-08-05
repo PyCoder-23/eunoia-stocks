@@ -21,10 +21,10 @@ export const AdminDashboard: React.FC = () => {
   const [traderUsers, setTraderUsers] = useState<any[]>([]);
 
   // State for New Company Form
-  const [newComp, setNewComp] = useState({ name: '', symbol: '', sector: 'Technology', description: '', initialPrice: '100.00', totalShares: '1000000', volatility: '1.0' });
+  const [newComp, setNewComp] = useState({ name: '', symbol: '', sector: 'Information Technology', description: '', initialPrice: '100.00', totalShares: '1000000', volatility: '1.0' });
 
   // State for New Trader Form
-  const [newTrader, setNewTrader] = useState({ username: '', teamName: '', password: '', cash: '100000' });
+  const [newTrader, setNewTrader] = useState({ username: '', teamName: '', password: '', cash: '1000000' });
 
   // State for Manual News Dispatch
   const [manualNews, setManualNews] = useState({ headline: '', description: '', category: 'Company News', severity: 'HIGH', affectedSector: 'Technology', expectedImpact: '10.0' });
@@ -95,7 +95,7 @@ export const AdminDashboard: React.FC = () => {
         volatility: parseFloat(newComp.volatility),
       });
       showMessage('success', res.data.message);
-      setNewComp({ name: '', symbol: '', sector: 'Technology', description: '', initialPrice: '100.00', totalShares: '1000000', volatility: '1.0' });
+      setNewComp({ name: '', symbol: '', sector: 'Information Technology', description: '', initialPrice: '100.00', totalShares: '1000000', volatility: '1.0' });
       await refreshMarketData();
       await fetchAdminData();
     } catch (err: any) {
@@ -149,7 +149,7 @@ export const AdminDashboard: React.FC = () => {
         cash: parseFloat(newTrader.cash),
       });
       showMessage('success', res.data.message);
-      setNewTrader({ username: '', teamName: '', password: '', cash: '100000' });
+      setNewTrader({ username: '', teamName: '', password: '', cash: '1000000' });
       await fetchAdminData();
     } catch (err: any) {
       showMessage('error', err.response?.data?.error || 'Failed to create trader account.');
@@ -185,7 +185,7 @@ export const AdminDashboard: React.FC = () => {
         expectedImpact: parseFloat(manualNews.expectedImpact),
       });
       showMessage('success', res.data.message);
-      setManualNews({ headline: '', description: '', category: 'Company News', severity: 'HIGH', affectedSector: 'Technology', expectedImpact: '10.0' });
+      setManualNews({ headline: '', description: '', category: 'Company News', severity: 'HIGH', affectedSector: 'Information Technology', expectedImpact: '10.0' });
       await refreshMarketData();
     } catch (err: any) {
       showMessage('error', err.response?.data?.error || 'Failed to dispatch news.');
@@ -542,23 +542,27 @@ export const AdminDashboard: React.FC = () => {
               </p>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {[
-                { label: '🤖 Tech Breakthrough (+Impact)', cat: 'Technology', sev: 'HIGH' },
-                { label: '⚠️ Healthcare Regulation (-Impact)', cat: 'Healthcare', sev: 'HIGH' },
-                { label: '⚡ Energy Supply Crisis (-Impact)', cat: 'Energy', sev: 'CRITICAL' },
-                { label: '🏦 Banking Interest Rate Hike', cat: 'Banking', sev: 'MEDIUM' },
+                { label: '🏦 Banking & Finance Rate Cut', cat: 'Banking and Finance', sev: 'HIGH' },
+                { label: '🛒 FMCG Rural Consumption Boom', cat: 'FMCG', sev: 'HIGH' },
+                { label: '🚗 Automobile EV Subsidy Policy', cat: 'Automobile', sev: 'HIGH' },
+                { label: '🤖 IT Enterprise AI Expansion', cat: 'Information Technology', sev: 'HIGH' },
+                { label: '🛡️ Defence Export Allocation', cat: 'Defence', sev: 'CRITICAL' },
+                { label: '🛢️ Oil & Gas Supply Shortage', cat: 'Oil and Gas', sev: 'HIGH' },
+                { label: '💊 Healthcare Drug Approval', cat: 'Healthcare', sev: 'CRITICAL' },
+                { label: '🏗️ Metals Megaproject Demand', cat: 'Metals and Mining', sev: 'HIGH' },
+                { label: '📡 Telecom 5G Subscriber Surge', cat: 'Telecommunications', sev: 'HIGH' },
                 { label: '🚀 Global Market Bull Rally', cat: 'Global Market', sev: 'HIGH' },
-                { label: '🔥 Random AI News Alert', cat: 'Technology', sev: 'MEDIUM' },
               ].map((btn, idx) => (
                 <button
                   key={idx}
                   onClick={() => handleDispatchAINews(btn.cat, btn.sev)}
                   disabled={loadingAction}
-                  className="p-4 rounded-2xl bg-slate-900 hover:bg-emerald-500/15 border border-slate-800 hover:border-emerald-500/40 text-left font-bold text-xs text-slate-200 hover:text-emerald-300 transition shadow-sm flex flex-col justify-between h-24"
+                  className="p-3.5 rounded-2xl bg-slate-900 hover:bg-emerald-500/15 border border-slate-800 hover:border-emerald-500/40 text-left font-bold text-xs text-slate-200 hover:text-emerald-300 transition shadow-sm flex flex-col justify-between h-20"
                 >
-                  <span className="block">{btn.label}</span>
-                  <span className="text-[10px] text-slate-400 uppercase">{btn.cat} • {btn.sev}</span>
+                  <span className="block truncate">{btn.label}</span>
+                  <span className="text-[10px] text-slate-400 uppercase truncate">{btn.cat} • {btn.sev}</span>
                 </button>
               ))}
             </div>
@@ -597,10 +601,15 @@ export const AdminDashboard: React.FC = () => {
                     className="w-full px-3 py-2 rounded-xl glass-input text-xs text-white bg-slate-900"
                   >
                     <option value="ALL">Entire Market (All Stocks)</option>
-                    <option value="Technology">Technology</option>
+                    <option value="Banking and Finance">Banking and Finance</option>
+                    <option value="FMCG">FMCG</option>
+                    <option value="Automobile">Automobile</option>
+                    <option value="Information Technology">Information Technology</option>
+                    <option value="Defence">Defence</option>
+                    <option value="Oil and Gas">Oil and Gas</option>
                     <option value="Healthcare">Healthcare</option>
-                    <option value="Energy">Energy</option>
-                    <option value="Banking">Banking</option>
+                    <option value="Metals and Mining">Metals and Mining</option>
+                    <option value="Telecommunications">Telecommunications</option>
                   </select>
                 </div>
                 <div>
@@ -625,70 +634,126 @@ export const AdminDashboard: React.FC = () => {
             </form>
           </div>
 
-          {/* High-Volatility Chaos Engine */}
+          {/* High-Volatility Stage 3 Chaos Engine */}
           <div className="glass-panel p-6 sm:p-8 rounded-3xl border-2 border-rose-500/50 shadow-[0_0_30px_rgba(244,63,94,0.15)] space-y-6 flex flex-col justify-between">
             <div>
               <div className="flex items-center gap-2 text-rose-400 font-bold text-xs uppercase tracking-wider mb-1 animate-pulse">
                 <Flame className="w-4 h-4" />
-                <span>Extreme Volatility Controls</span>
+                <span>Stage 3 Extreme Volatility & News Engine</span>
               </div>
-              <h3 className="text-2xl font-black text-white font-['Outfit']">Round 3 Chaos Event Triggers</h3>
+              <h3 className="text-2xl font-black text-white font-['Outfit']">Round 3 Chaos & Sector Shock Controls</h3>
               <p className="text-xs text-slate-300 mt-1 leading-relaxed">
-                Trigger immediate, dramatic market valuations! These buttons instantly shift prices across targeted sectors and trigger a full-screen red alert modal on all team dashboards.
+                Trigger immediate, dramatic market valuations! Instantly shift prices across targeted sectors or globally, broadcasting full-screen red alerts on trader dashboards.
               </p>
             </div>
 
-            <div className="space-y-4">
-              {/* Crash Button */}
-              <button
-                onClick={() => handleTriggerChaos(
-                  "CRITICAL MARKET CRASH", 
-                  "Global financial panic! Liquidity crunch triggers massive institutional sell-offs across all sectors. Stock valuations dropping rapidly!", 
-                  "CRASH", null, -30
-                )}
-                disabled={loadingAction}
-                className="w-full p-5 rounded-2xl bg-gradient-to-r from-rose-600 via-red-600 to-rose-700 hover:from-rose-500 hover:to-red-600 text-white font-black text-left shadow-lg shadow-rose-500/30 transition transform hover:scale-[1.01] flex items-center justify-between group"
-              >
-                <div>
-                  <span className="block text-base uppercase tracking-wide font-['Outfit']">💥 Global Market Crash (-30% All Stocks)</span>
-                  <span className="text-xs text-rose-200 font-normal">Instant 30% devaluation across every listed company</span>
-                </div>
-                <TrendingDown className="w-8 h-8 text-rose-200 group-hover:scale-125 transition-transform" />
-              </button>
+            {/* 1. Global Macro Shocks */}
+            <div className="space-y-3">
+              <h4 className="font-extrabold text-white text-xs uppercase tracking-wider text-slate-400">1. Global Macro Market Events</h4>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <button
+                  onClick={() => handleTriggerChaos(
+                    "GLOBAL MARKET BOOM (+30%)", 
+                    "An unprecedented surge of institutional capital has entered the market! Equities soaring across all sectors!", 
+                    "BOOM", null, 30
+                  )}
+                  disabled={loadingAction}
+                  className="p-3.5 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold text-xs text-left shadow-lg shadow-emerald-500/20 transition flex items-center justify-between"
+                >
+                  <div>
+                    <span className="block font-['Outfit']">🚀 Global Market Boom</span>
+                    <span className="text-[10px] text-emerald-100 font-normal">+30% All Stocks</span>
+                  </div>
+                  <TrendingUp className="w-5 h-5 text-emerald-200" />
+                </button>
 
-              {/* Tech Boom Button */}
-              <button
-                onClick={() => handleTriggerChaos(
-                  "AI TECH SUPER-BOOM", 
-                  "Revolutionary quantum computing and generative AI breakthrough announced! Tech valuations surging to record highs!", 
-                  "BOOM", "Technology", 40
-                )}
-                disabled={loadingAction}
-                className="w-full p-5 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-left shadow-lg shadow-emerald-500/30 transition transform hover:scale-[1.01] flex items-center justify-between group"
-              >
-                <div>
-                  <span className="block text-base uppercase tracking-wide font-['Outfit']">🚀 Tech Sector Mega-Boom (+40% Tech Stocks)</span>
-                  <span className="text-xs text-emerald-100 font-normal">Instant 40% valuation surge for Technology sector</span>
-                </div>
-                <TrendingUp className="w-8 h-8 text-emerald-100 group-hover:scale-125 transition-transform" />
-              </button>
+                <button
+                  onClick={() => handleTriggerChaos(
+                    "GLOBAL MARKET CRASH (-30%)", 
+                    "Global financial panic! Liquidity crunch triggers massive sell-offs across all sectors. Stock valuations dropping rapidly!", 
+                    "CRASH", null, -30
+                  )}
+                  disabled={loadingAction}
+                  className="p-3.5 rounded-2xl bg-gradient-to-r from-rose-600 to-red-700 hover:from-rose-500 hover:to-red-600 text-white font-extrabold text-xs text-left shadow-lg shadow-rose-500/20 transition flex items-center justify-between"
+                >
+                  <div>
+                    <span className="block font-['Outfit']">💥 Global Market Crash</span>
+                    <span className="text-[10px] text-rose-100 font-normal">-30% All Stocks</span>
+                  </div>
+                  <TrendingDown className="w-5 h-5 text-rose-200" />
+                </button>
 
-              {/* Energy Shock Button */}
-              <button
-                onClick={() => handleTriggerChaos(
-                  "ENERGY SUPPLY CRISIS", 
-                  "Geopolical conflict disrupts global oil & gas pipelines! Energy stock valuations skyrocketing due to commodity shortages!", 
-                  "BOOM", "Energy", 35
-                )}
-                disabled={loadingAction}
-                className="w-full p-5 rounded-2xl bg-gradient-to-r from-amber-600 via-orange-600 to-yellow-600 hover:from-amber-500 hover:to-orange-500 text-white font-black text-left shadow-lg shadow-amber-500/30 transition transform hover:scale-[1.01] flex items-center justify-between group"
-              >
-                <div>
-                  <span className="block text-base uppercase tracking-wide font-['Outfit']">⚡ Energy Sector Shock (+35% Energy Stocks)</span>
-                  <span className="text-xs text-amber-100 font-normal">Instant 35% valuation surge for Energy sector</span>
-                </div>
-                <TrendingUp className="w-8 h-8 text-amber-100 group-hover:scale-125 transition-transform" />
-              </button>
+                <button
+                  onClick={() => handleTriggerChaos(
+                    "BLACK SWAN FRAUD SHOCK (-50%)", 
+                    "Catastrophic accounting fraud uncovered! Regulators halt operations at target company!", 
+                    "BLACK_SWAN", null, -50
+                  )}
+                  disabled={loadingAction}
+                  className="p-3.5 rounded-2xl bg-gradient-to-r from-purple-600 to-indigo-700 hover:from-purple-500 hover:to-indigo-600 text-white font-extrabold text-xs text-left shadow-lg shadow-purple-500/20 transition flex items-center justify-between"
+                >
+                  <div>
+                    <span className="block font-['Outfit']">🦢 Black Swan Event</span>
+                    <span className="text-[10px] text-purple-100 font-normal">-50% Random Stock</span>
+                  </div>
+                  <Flame className="w-5 h-5 text-purple-200" />
+                </button>
+              </div>
+            </div>
+
+            {/* 2. Sector Major Boom & Loss Matrix (All 9 Sectors) */}
+            <div className="space-y-3 pt-2">
+              <h4 className="font-extrabold text-white text-xs uppercase tracking-wider text-slate-400">2. Targeted Major Sector Booms & Losses (+35% / -35%)</h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2.5 max-h-96 overflow-y-auto pr-1">
+                {[
+                  { sector: 'Banking and Finance', boomType: 'BANKING_BOOM', crashType: 'BANKING_CRISIS', icon: '🏦' },
+                  { sector: 'FMCG', boomType: 'FMCG_BOOM', crashType: 'FMCG_CRASH', icon: '🛒' },
+                  { sector: 'Automobile', boomType: 'AUTO_BOOM', crashType: 'AUTO_CRASH', icon: '🚗' },
+                  { sector: 'Information Technology', boomType: 'BUBBLE_TECH', crashType: 'IT_CRASH', icon: '🤖' },
+                  { sector: 'Defence', boomType: 'DEFENCE_BOOM', crashType: 'DEFENCE_CRASH', icon: '🛡️' },
+                  { sector: 'Oil and Gas', boomType: 'OIL_BOOM', crashType: 'OIL_CRASH', icon: '🛢️' },
+                  { sector: 'Healthcare', boomType: 'HEALTHCARE_BOOM', crashType: 'HEALTHCARE_CRASH', icon: '💊' },
+                  { sector: 'Metals and Mining', boomType: 'METALS_BOOM', crashType: 'METALS_CRASH', icon: '🏗️' },
+                  { sector: 'Telecommunications', boomType: 'TELECOM_BOOM', crashType: 'TELECOM_CRASH', icon: '📡' },
+                ].map((item) => (
+                  <div key={item.sector} className="p-2.5 rounded-xl bg-slate-900/90 border border-slate-800 space-y-1.5">
+                    <div className="text-[11px] font-bold text-slate-300 truncate flex items-center gap-1">
+                      <span>{item.icon}</span>
+                      <span className="truncate">{item.sector}</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-1.5">
+                      <button
+                        onClick={() => handleTriggerChaos(
+                          `${item.sector.toUpperCase()} BOOM (+35%)`,
+                          `Surging demand and favorable regulatory tailwinds send ${item.sector} valuations soaring!`,
+                          item.boomType,
+                          item.sector,
+                          35
+                        )}
+                        disabled={loadingAction}
+                        className="py-1.5 px-2 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-300 font-extrabold text-[10px] text-center transition flex items-center justify-center gap-1"
+                      >
+                        <TrendingUp className="w-3 h-3" />
+                        <span>Boom +35%</span>
+                      </button>
+                      <button
+                        onClick={() => handleTriggerChaos(
+                          `${item.sector.toUpperCase()} CRASH (-35%)`,
+                          `Severe sector disruption and regulatory shocks cause heavy liquidation in ${item.sector}!`,
+                          item.crashType,
+                          item.sector,
+                          -35
+                        )}
+                        disabled={loadingAction}
+                        className="py-1.5 px-2 rounded-lg bg-rose-500/15 hover:bg-rose-500/30 border border-rose-500/40 text-rose-300 font-extrabold text-[10px] text-center transition flex items-center justify-center gap-1"
+                      >
+                        <TrendingDown className="w-3 h-3" />
+                        <span>Loss -35%</span>
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
@@ -734,10 +799,15 @@ export const AdminDashboard: React.FC = () => {
                     onChange={e => setNewComp({...newComp, sector: e.target.value})}
                     className="w-full px-3 py-2 rounded-xl glass-input text-white bg-slate-900"
                   >
-                    <option value="Technology">Technology</option>
+                    <option value="Banking and Finance">Banking and Finance</option>
+                    <option value="FMCG">FMCG</option>
+                    <option value="Automobile">Automobile</option>
+                    <option value="Information Technology">Information Technology</option>
+                    <option value="Defence">Defence</option>
+                    <option value="Oil and Gas">Oil and Gas</option>
                     <option value="Healthcare">Healthcare</option>
-                    <option value="Energy">Energy</option>
-                    <option value="Banking">Banking</option>
+                    <option value="Metals and Mining">Metals and Mining</option>
+                    <option value="Telecommunications">Telecommunications</option>
                   </select>
                 </div>
               </div>

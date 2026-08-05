@@ -13,12 +13,24 @@ export const StockMarket: React.FC = () => {
   const [selectedSector, setSelectedSector] = useState<string>('ALL');
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
   const [priceHistory, setPriceHistory] = useState<Array<{ time: string; price: number }>>([]);
-  const [tradeType, setTradeType] = useState<'BUY' | 'SELL'>('BUY');
+  const [tradeType, setTradeType] = useState<'BUY' | 'SELL' | 'SHORT_SELL' | 'COVER_SHORT' | 'LIMIT_BUY' | 'LIMIT_SELL' | 'STOP_LOSS'>('BUY');
   const [shareQuantity, setShareQuantity] = useState<string>('10');
+  const [targetPrice, setTargetPrice] = useState<string>('');
   const [tradeLoading, setTradeLoading] = useState(false);
   const [tradeMessage, setTradeMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  const sectors = ['ALL', 'Technology', 'Healthcare', 'Energy', 'Banking'];
+  const sectors = [
+    'ALL',
+    'Banking and Finance',
+    'FMCG',
+    'Automobile',
+    'Information Technology',
+    'Defence',
+    'Oil and Gas',
+    'Healthcare',
+    'Metals and Mining',
+    'Telecommunications',
+  ];
 
   const filteredCompanies = companies.filter(c => {
     const matchesSearch = c.name.toLowerCase().includes(searchTerm.toLowerCase()) || c.symbol.toLowerCase().includes(searchTerm.toLowerCase());
@@ -30,6 +42,7 @@ export const StockMarket: React.FC = () => {
     setSelectedCompany(comp);
     setTradeMessage(null);
     setShareQuantity('10');
+    setTargetPrice(comp.currentPrice.toFixed(2));
     try {
       const res = await axios.get(`${API_URL}/game/companies/${comp.id}`);
       if (res.data && res.data.priceHistory) {
@@ -47,14 +60,23 @@ export const StockMarket: React.FC = () => {
     setTradeMessage(null);
 
     try {
-      const res = await axios.post(`${API_URL}/trade/execute`, {
+      const isMarket = ['BUY', 'SELL', 'SHORT_SELL', 'COVER_SHORT'].includes(tradeType);
+      const url = isMarket ? `${API_URL}/trade/execute` : `${API_URL}/trade/orders`;
+
+      const payload: any = {
         companyId: selectedCompany.id,
         type: tradeType,
         shares: parseInt(shareQuantity, 10),
-      });
+      };
+
+      if (!isMarket) {
+        payload.targetPrice = parseFloat(targetPrice);
+      }
+
+      const res = await axios.post(url, payload);
 
       setTradeMessage({ type: 'success', text: res.data.message });
-      await refreshUser(); // Update cash balance immediately
+      if (isMarket) await refreshUser(); // Update cash balance immediately
     } catch (err: any) {
       console.error('Trade execution failed:', err);
       setTradeMessage({ type: 'error', text: err.response?.data?.error || 'Trade failed to execute.' });
@@ -99,21 +121,24 @@ export const StockMarket: React.FC = () => {
             />
           </div>
 
-          {/* Sector Filters */}
-          <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0">
-            {sectors.map(sec => (
-              <button
-                key={sec}
-                onClick={() => setSelectedSector(sec)}
-                className={`px-3.5 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${
-                  selectedSector === sec
-                    ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm'
-                    : 'bg-slate-900/80 text-slate-400 hover:text-white border border-slate-800'
-                }`}
-              >
-                {sec}
-              </button>
-            ))}
+          {/* Sector Filters Dropdown */}
+          <div className="relative w-full sm:w-48">
+            <select
+              value={selectedSector}
+              onChange={(e) => setSelectedSector(e.target.value)}
+              className="w-full appearance-none px-4 py-2.5 rounded-xl glass-input text-xs text-white bg-slate-900/80 border border-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 font-medium cursor-pointer"
+            >
+              {sectors.map(sec => (
+                <option key={sec} value={sec} className="bg-slate-900 text-white">
+                  {sec}
+                </option>
+              ))}
+            </select>
+            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-400">
+              <svg className="h-4 w-4 fill-current" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" />
+              </svg>
+            </div>
           </div>
         </div>
       </div>
@@ -253,34 +278,41 @@ export const StockMarket: React.FC = () => {
                 </div>
               )}
 
-              {/* Buy / Sell Tabs */}
-              <div className="grid grid-cols-2 gap-2 p-1 bg-slate-900 rounded-2xl border border-slate-800">
-                <button
-                  type="button"
-                  onClick={() => { setTradeType('BUY'); setTradeMessage(null); }}
-                  className={`py-3 rounded-xl font-extrabold text-xs uppercase tracking-wider transition ${
-                    tradeType === 'BUY' ? 'bg-emerald-500 text-slate-950 shadow-lg shadow-emerald-500/25' : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  Buy Shares
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { setTradeType('SELL'); setTradeMessage(null); }}
-                  className={`py-3 rounded-xl font-extrabold text-xs uppercase tracking-wider transition ${
-                    tradeType === 'SELL' ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/25' : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  Sell Shares
-                </button>
+              {/* Order Type Tabs */}
+              <div className="space-y-3">
+                <label className="font-bold text-slate-300 uppercase tracking-wider text-xs">Order Type</label>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 p-1 bg-slate-900 rounded-2xl border border-slate-800">
+                  <button type="button" onClick={() => { setTradeType('BUY'); setTradeMessage(null); }} className={`py-2 rounded-xl font-extrabold text-[10px] uppercase tracking-wider transition ${tradeType === 'BUY' ? 'bg-emerald-500 text-slate-950 shadow-lg' : 'text-slate-400 hover:text-white'}`}>Buy</button>
+                  <button type="button" onClick={() => { setTradeType('SELL'); setTradeMessage(null); }} className={`py-2 rounded-xl font-extrabold text-[10px] uppercase tracking-wider transition ${tradeType === 'SELL' ? 'bg-rose-500 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}>Sell</button>
+                  <button type="button" onClick={() => { setTradeType('SHORT_SELL'); setTradeMessage(null); }} className={`py-2 rounded-xl font-extrabold text-[10px] uppercase tracking-wider transition ${tradeType === 'SHORT_SELL' ? 'bg-purple-500 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}>Short Sell</button>
+                  <button type="button" onClick={() => { setTradeType('COVER_SHORT'); setTradeMessage(null); }} className={`py-2 rounded-xl font-extrabold text-[10px] uppercase tracking-wider transition ${tradeType === 'COVER_SHORT' ? 'bg-blue-500 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}>Cover Short</button>
+                  <button type="button" onClick={() => { setTradeType('LIMIT_BUY'); setTradeMessage(null); }} className={`py-2 rounded-xl font-extrabold text-[10px] uppercase tracking-wider transition ${tradeType === 'LIMIT_BUY' ? 'bg-teal-500 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}>Limit Buy</button>
+                  <button type="button" onClick={() => { setTradeType('LIMIT_SELL'); setTradeMessage(null); }} className={`py-2 rounded-xl font-extrabold text-[10px] uppercase tracking-wider transition ${tradeType === 'LIMIT_SELL' ? 'bg-orange-500 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}>Limit Sell</button>
+                  <button type="button" onClick={() => { setTradeType('STOP_LOSS'); setTradeMessage(null); }} className={`py-2 col-span-2 rounded-xl font-extrabold text-[10px] uppercase tracking-wider transition ${tradeType === 'STOP_LOSS' ? 'bg-red-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}>Stop Loss (Sell)</button>
+                </div>
               </div>
+
+              {['LIMIT_BUY', 'LIMIT_SELL', 'STOP_LOSS'].includes(tradeType) && (
+                <div>
+                  <label className="font-bold text-slate-300 uppercase tracking-wider text-xs mb-2 block">Target Price (₹)</label>
+                  <input
+                    type="number"
+                    min="1"
+                    step="0.01"
+                    required
+                    value={targetPrice}
+                    onChange={(e) => setTargetPrice(e.target.value)}
+                    className="w-full px-4 py-3 rounded-xl glass-input text-lg font-mono font-bold text-white"
+                  />
+                </div>
+              )}
 
               {/* Quantity Input */}
               <div>
                 <div className="flex items-center justify-between mb-2 text-xs">
                   <label className="font-bold text-slate-300 uppercase tracking-wider">Number of Shares</label>
                   <span className="text-slate-400 font-mono">
-                    Max possible {tradeType === 'BUY' ? `with cash: ${calculateMaxShares()} shares` : 'sellable'}
+                    Max possible {tradeType.includes('BUY') ? `with cash: ${calculateMaxShares()} shares` : 'sellable'}
                   </span>
                 </div>
 
@@ -303,7 +335,7 @@ export const StockMarket: React.FC = () => {
                       +{qty}
                     </button>
                   ))}
-                  {tradeType === 'BUY' && (
+                  {tradeType.includes('BUY') && (
                     <button
                       type="button"
                       onClick={() => setShareQuantity(calculateMaxShares().toString())}

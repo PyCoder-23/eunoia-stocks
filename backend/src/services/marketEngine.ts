@@ -1,7 +1,7 @@
 import { db } from '../config/db.js';
-import { companies, gameState, users, portfolios, Company } from '../schema/index.js';
-import { eq } from 'drizzle-orm';
-import { broadcastMarketUpdate, broadcastLeaderboard } from '../sockets/socketHandler.js';
+import { companies, gameState, users, portfolios, orders, transactions, Company, NewPortfolio, NewTransaction } from '../schema/index.js';
+import { eq, and } from 'drizzle-orm';
+import { broadcastMarketUpdate, broadcastLeaderboard, broadcastTradeExecuted } from '../sockets/socketHandler.js';
 import { activeNewsModifiers } from './newsEngine.js';
 
 // In-memory price history for candlestick/line charts (last 60 ticks per stock)
@@ -16,6 +16,7 @@ export const startMarketEngine = (): void => {
   tickInterval = setInterval(async () => {
     try {
       await processMarketTick();
+      await processPendingOrders(); // Check orders after prices update
     } catch (error) {
       console.error('❌ Error in market tick loop:', error);
     }
@@ -155,20 +156,28 @@ export const calculateLeaderboard = async (): Promise<any[]> => {
   allCompanies.forEach(c => compMap.set(c.id, c));
 
   const leaderboard = allUsers.map(u => {
-    const userPortfolios = allPortfolios.filter(p => p.userId === u.id && p.shares > 0);
+    const userPortfolios = allPortfolios.filter(p => p.userId === u.id);
     let portfolioValue = 0.0;
     let investedValue = 0.0;
+    let shortLiabilities = 0.0;
+    let shortProceeds = 0.0;
 
     userPortfolios.forEach(p => {
       const comp = compMap.get(p.companyId);
       if (comp) {
-        portfolioValue += p.shares * comp.currentPrice;
-        investedValue += p.shares * p.averagePrice;
+        if (p.shares > 0) {
+          portfolioValue += p.shares * comp.currentPrice;
+          investedValue += p.shares * p.averagePrice;
+        }
+        if (p.shortShares > 0) {
+          shortLiabilities += p.shortShares * comp.currentPrice;
+          shortProceeds += p.shortShares * p.shortAveragePrice;
+        }
       }
     });
 
-    const netWorth = u.cash + portfolioValue;
-    const profitLoss = portfolioValue - investedValue; // Unrealized profit/loss
+    const netWorth = u.cash + portfolioValue - shortLiabilities;
+    const profitLoss = (portfolioValue - investedValue) + (shortProceeds - shortLiabilities);
 
     return {
       userId: u.id,
@@ -193,4 +202,130 @@ export const calculateLeaderboard = async (): Promise<any[]> => {
 
 export const getPriceHistory = (companyId: string): Array<{ time: string; price: number }> => {
   return priceHistory.get(companyId) || [];
+};
+
+export const processPendingOrders = async (): Promise<void> => {
+  const pendingOrders = await db.select().from(orders).where(eq(orders.status, 'PENDING'));
+  if (pendingOrders.length === 0) return;
+
+  const allComps = await db.select().from(companies);
+  const compMap = new Map<string, Company>();
+  allComps.forEach(c => compMap.set(c.id, c));
+
+  for (const order of pendingOrders) {
+    const comp = compMap.get(order.companyId);
+    if (!comp) continue;
+
+    let shouldExecute = false;
+    let executionType: 'BUY' | 'SELL' = 'BUY';
+
+    if (order.type === 'LIMIT_BUY') {
+      if (comp.currentPrice <= order.targetPrice) {
+        shouldExecute = true;
+        executionType = 'BUY';
+      }
+    } else if (order.type === 'LIMIT_SELL') {
+      if (comp.currentPrice >= order.targetPrice) {
+        shouldExecute = true;
+        executionType = 'SELL';
+      }
+    } else if (order.type === 'STOP_LOSS') {
+      if (comp.currentPrice <= order.targetPrice) {
+        shouldExecute = true;
+        executionType = 'SELL';
+      }
+    }
+
+    if (shouldExecute) {
+      try {
+        const userList = await db.select().from(users).where(eq(users.id, order.userId));
+        if (userList.length === 0) continue;
+        const user = userList[0];
+        
+        const execPrice = comp.currentPrice;
+        const totalCost = parseFloat((execPrice * order.shares).toFixed(2));
+        let failedReason = '';
+
+        if (executionType === 'BUY') {
+          if (user.cash < totalCost) failedReason = 'Insufficient funds';
+          else if (comp.availableShares < order.shares) failedReason = 'Insufficient market liquidity';
+        } else if (executionType === 'SELL') {
+          const portList = await db.select().from(portfolios).where(and(eq(portfolios.userId, user.id), eq(portfolios.companyId, comp.id)));
+          if (portList.length === 0 || portList[0].shares < order.shares) failedReason = 'Insufficient shares';
+        }
+
+        if (failedReason) {
+          await db.update(orders).set({ status: 'FAILED' }).where(eq(orders.id, order.id));
+          // Just broadcast the failure if needed, or silently mark as FAILED
+          continue;
+        }
+
+        // Execute the trade
+        if (executionType === 'BUY') {
+          const newCash = parseFloat((user.cash - totalCost).toFixed(2));
+          await db.update(users).set({ cash: newCash }).where(eq(users.id, user.id));
+    
+          const portList = await db.select().from(portfolios).where(and(eq(portfolios.userId, user.id), eq(portfolios.companyId, comp.id)));
+          if (portList.length > 0) {
+            const port = portList[0];
+            const newShares = port.shares + order.shares;
+            const totalValueOld = port.shares * port.averagePrice;
+            const newAvgPrice = parseFloat(((totalValueOld + totalCost) / newShares).toFixed(2));
+            await db.update(portfolios).set({ shares: newShares, averagePrice: newAvgPrice }).where(eq(portfolios.id, port.id));
+          } else {
+            const newPort: NewPortfolio = {
+              id: `port-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+              userId: user.id,
+              companyId: comp.id,
+              shares: order.shares,
+              averagePrice: execPrice,
+            };
+            await db.insert(portfolios).values(newPort);
+          }
+        } else {
+          const portList = await db.select().from(portfolios).where(and(eq(portfolios.userId, user.id), eq(portfolios.companyId, comp.id)));
+          const port = portList[0];
+          const newShares = port.shares - order.shares;
+          const newCash = parseFloat((user.cash + totalCost).toFixed(2));
+          await db.update(users).set({ cash: newCash }).where(eq(users.id, user.id));
+    
+          if (newShares === 0 && port.shortShares === 0) {
+            await db.delete(portfolios).where(eq(portfolios.id, port.id));
+          } else {
+            await db.update(portfolios).set({ shares: newShares }).where(eq(portfolios.id, port.id));
+          }
+        }
+        
+        await db.update(orders).set({ status: 'EXECUTED' }).where(eq(orders.id, order.id));
+
+        const txId = `tx-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+        const newTx: NewTransaction = {
+          id: txId,
+          userId: user.id,
+          companyId: comp.id,
+          type: executionType,
+          shares: order.shares,
+          price: execPrice,
+          totalAmount: totalCost,
+          timestamp: Date.now(),
+        };
+        await db.insert(transactions).values(newTx);
+        
+        await applyTradeSupplyDemandImpact(comp.id, executionType, order.shares);
+
+        broadcastTradeExecuted({
+          id: txId,
+          teamName: user.teamName,
+          symbol: comp.symbol,
+          type: executionType,
+          shares: order.shares,
+          price: execPrice,
+          totalAmount: totalCost,
+          timestamp: newTx.timestamp,
+        });
+      } catch (err) {
+        console.error('Error executing pending order:', err);
+      }
+    }
+  }
 };

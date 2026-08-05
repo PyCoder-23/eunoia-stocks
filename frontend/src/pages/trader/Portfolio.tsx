@@ -13,17 +13,33 @@ interface Holding {
   sector: string;
   shares: number;
   averagePrice: number;
+  shortShares: number;
+  shortAveragePrice: number;
   currentPrice: number;
   currentValue: number;
   investedValue: number;
+  shortLiabilities: number;
+  shortProceeds: number;
   unrealizedPL: number;
   plPercentage: number;
+}
+
+interface PendingOrder {
+  id: string;
+  companyId: string;
+  symbol: string;
+  type: string;
+  shares: number;
+  targetPrice: number;
+  status: string;
+  timestamp: number;
 }
 
 export const Portfolio: React.FC = () => {
   const { user, refreshUser } = useAuth();
   const { companies, gameState } = useSocket();
   const [holdings, setHoldings] = useState<Holding[]>([]);
+  const [pendingOrders, setPendingOrders] = useState<PendingOrder[]>([]);
   const [summary, setSummary] = useState({
     cash: 0,
     portfolioValue: 0,
@@ -36,10 +52,17 @@ export const Portfolio: React.FC = () => {
 
   const fetchPortfolio = async () => {
     try {
-      const res = await axios.get(`${API_URL}/game/portfolio`);
-      if (res.data) {
-        setHoldings(res.data.holdings || []);
-        if (res.data.summary) setSummary(res.data.summary);
+      const [portRes, ordersRes] = await Promise.all([
+        axios.get(`${API_URL}/game/portfolio`),
+        axios.get(`${API_URL}/trade/orders`)
+      ]);
+      
+      if (portRes.data) {
+        setHoldings(portRes.data.holdings || []);
+        if (portRes.data.summary) setSummary(portRes.data.summary);
+      }
+      if (ordersRes.data) {
+        setPendingOrders(ordersRes.data);
       }
     } catch (err) {
       console.error('Error fetching portfolio:', err);
@@ -52,7 +75,7 @@ export const Portfolio: React.FC = () => {
     fetchPortfolio();
   }, [user, companies]); // Re-compute valuations whenever live market ticks arrive!
 
-  const handleLiquidate = async (holding: Holding) => {
+  const handleLiquidate = async (holding: Holding, isShort: boolean = false) => {
     if (gameState.status !== 'ACTIVE') {
       setLiquidateMsg({ type: 'error', text: 'Trading is locked! Wait for Round to be Active.' });
       return;
@@ -61,16 +84,26 @@ export const Portfolio: React.FC = () => {
     try {
       await axios.post(`${API_URL}/trade/execute`, {
         companyId: holding.companyId,
-        type: 'SELL',
-        shares: holding.shares,
+        type: isShort ? 'COVER_SHORT' : 'SELL',
+        shares: isShort ? holding.shortShares : holding.shares,
       });
 
-      setLiquidateMsg({ type: 'success', text: `Liquidated all ${holding.shares} shares of ${holding.symbol} successfully!` });
+      setLiquidateMsg({ type: 'success', text: `${isShort ? 'Covered' : 'Liquidated'} all ${isShort ? holding.shortShares : holding.shares} shares of ${holding.symbol} successfully!` });
       await refreshUser();
       await fetchPortfolio();
     } catch (err: any) {
       console.error('Liquidation failed:', err);
       setLiquidateMsg({ type: 'error', text: err.response?.data?.error || 'Failed to liquidate holding.' });
+    }
+  };
+
+  const handleCancelOrder = async (orderId: string) => {
+    try {
+      await axios.delete(`${API_URL}/trade/orders/${orderId}`);
+      setLiquidateMsg({ type: 'success', text: 'Order cancelled successfully.' });
+      fetchPortfolio();
+    } catch (err: any) {
+      setLiquidateMsg({ type: 'error', text: err.response?.data?.error || 'Failed to cancel order.' });
     }
   };
 
@@ -167,10 +200,10 @@ export const Portfolio: React.FC = () => {
               <thead>
                 <tr className="bg-slate-950/60 text-[11px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-800/80">
                   <th className="py-4 px-6">Stock Symbol & Name</th>
-                  <th className="py-4 px-6 text-right">Shares Owned</th>
-                  <th className="py-4 px-6 text-right">Avg Purchase Price</th>
+                  <th className="py-4 px-6 text-right">Position</th>
+                  <th className="py-4 px-6 text-right">Avg Price</th>
                   <th className="py-4 px-6 text-right">Current Price</th>
-                  <th className="py-4 px-6 text-right">Current Valuation</th>
+                  <th className="py-4 px-6 text-right">Valuation / Liability</th>
                   <th className="py-4 px-6 text-right">Unrealized P/L</th>
                   <th className="py-4 px-6 text-center">Action</th>
                 </tr>
@@ -178,56 +211,109 @@ export const Portfolio: React.FC = () => {
               <tbody className="divide-y divide-slate-800/60 text-sm">
                 {holdings.map((h) => {
                   const isPositive = h.unrealizedPL >= 0;
+                  const hasLong = h.shares > 0;
+                  const hasShort = h.shortShares > 0;
+                  
                   return (
-                    <tr key={h.id} className="hover:bg-slate-800/30 transition-colors">
-                      <td className="py-4 px-6">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-xl bg-slate-800 border border-slate-700/80 flex items-center justify-center font-extrabold text-white font-['Outfit']">
-                            {h.symbol}
-                          </div>
-                          <div>
-                            <span className="font-extrabold text-white block">{h.symbol}</span>
-                            <span className="text-xs text-slate-400 block">{h.name}</span>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="py-4 px-6 text-right font-mono font-bold text-white">
-                        {h.shares.toLocaleString('en-IN')}
-                      </td>
-                      <td className="py-4 px-6 text-right font-mono text-slate-300">
-                        ₹{h.averagePrice.toFixed(2)}
-                      </td>
-                      <td className="py-4 px-6 text-right font-mono font-bold text-white">
-                        ₹{h.currentPrice.toFixed(2)}
-                      </td>
-                      <td className="py-4 px-6 text-right font-mono font-extrabold text-teal-300">
-                        ₹{h.currentValue.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </td>
-                      <td className="py-4 px-6 text-right font-mono">
-                        <div className={`font-extrabold flex items-center justify-end gap-1 ${
-                          isPositive ? 'text-emerald-400' : 'text-rose-400'
-                        }`}>
-                          {isPositive ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
-                          <span>{isPositive ? '+' : ''}₹{h.unrealizedPL.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                        </div>
-                        <span className={`text-[11px] font-bold block ${isPositive ? 'text-emerald-400/80' : 'text-rose-400/80'}`}>
-                          ({isPositive ? '+' : ''}{h.plPercentage.toFixed(2)}%)
-                        </span>
-                      </td>
-                      <td className="py-4 px-6 text-center">
-                        <button
-                          onClick={() => handleLiquidate(h)}
-                          disabled={gameState.status !== 'ACTIVE'}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition ${
-                            gameState.status !== 'ACTIVE'
-                              ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
-                              : 'bg-rose-500/20 hover:bg-rose-500 text-rose-300 hover:text-white border border-rose-500/30 shadow-sm'
-                          }`}
-                        >
-                          Liquidate
-                        </button>
-                      </td>
-                    </tr>
+                    <React.Fragment key={h.id}>
+                      {hasLong && (
+                        <tr className="hover:bg-slate-800/30 transition-colors">
+                          <td className="py-4 px-6">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-xl bg-slate-800 border border-slate-700/80 flex items-center justify-center font-extrabold text-white font-['Outfit']">
+                                {h.symbol}
+                              </div>
+                              <div>
+                                <span className="font-extrabold text-white block">{h.symbol}</span>
+                                <span className="text-xs text-slate-400 block">{h.name}</span>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="py-4 px-6 text-right font-mono font-bold text-emerald-400">
+                            LONG: {h.shares.toLocaleString('en-IN')}
+                          </td>
+                          <td className="py-4 px-6 text-right font-mono text-slate-300">
+                            ₹{h.averagePrice.toFixed(2)}
+                          </td>
+                          <td className="py-4 px-6 text-right font-mono font-bold text-white">
+                            ₹{h.currentPrice.toFixed(2)}
+                          </td>
+                          <td className="py-4 px-6 text-right font-mono font-extrabold text-teal-300">
+                            ₹{h.currentValue.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </td>
+                          <td className="py-4 px-6 text-right font-mono">
+                            <div className={`font-extrabold flex items-center justify-end gap-1 ${
+                              ((h.currentValue - h.investedValue) >= 0) ? 'text-emerald-400' : 'text-rose-400'
+                            }`}>
+                              {((h.currentValue - h.investedValue) >= 0) ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
+                              <span>{((h.currentValue - h.investedValue) >= 0) ? '+' : ''}₹{(h.currentValue - h.investedValue).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                            </div>
+                          </td>
+                          <td className="py-4 px-6 text-center">
+                            <button
+                              onClick={() => handleLiquidate(h, false)}
+                              disabled={gameState.status !== 'ACTIVE'}
+                              className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition ${
+                                gameState.status !== 'ACTIVE'
+                                  ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                                  : 'bg-emerald-500/20 hover:bg-emerald-500 text-emerald-300 hover:text-white border border-emerald-500/30 shadow-sm'
+                              }`}
+                            >
+                              Liquidate
+                            </button>
+                          </td>
+                        </tr>
+                      )}
+                      
+                      {hasShort && (
+                        <tr className="hover:bg-slate-800/30 transition-colors">
+                          <td className="py-4 px-6">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-xl bg-slate-800 border border-slate-700/80 flex items-center justify-center font-extrabold text-white font-['Outfit'] opacity-60">
+                                {h.symbol}
+                              </div>
+                              <div>
+                                <span className="font-extrabold text-white block opacity-60">{h.symbol}</span>
+                                <span className="text-xs text-slate-400 block">Short Position</span>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="py-4 px-6 text-right font-mono font-bold text-purple-400">
+                            SHORT: {h.shortShares.toLocaleString('en-IN')}
+                          </td>
+                          <td className="py-4 px-6 text-right font-mono text-slate-300">
+                            ₹{h.shortAveragePrice.toFixed(2)}
+                          </td>
+                          <td className="py-4 px-6 text-right font-mono font-bold text-white">
+                            ₹{h.currentPrice.toFixed(2)}
+                          </td>
+                          <td className="py-4 px-6 text-right font-mono font-extrabold text-rose-300">
+                            Liability: ₹{h.shortLiabilities.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </td>
+                          <td className="py-4 px-6 text-right font-mono">
+                            <div className={`font-extrabold flex items-center justify-end gap-1 ${
+                              ((h.shortProceeds - h.shortLiabilities) >= 0) ? 'text-emerald-400' : 'text-rose-400'
+                            }`}>
+                              {((h.shortProceeds - h.shortLiabilities) >= 0) ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
+                              <span>{((h.shortProceeds - h.shortLiabilities) >= 0) ? '+' : ''}₹{(h.shortProceeds - h.shortLiabilities).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                            </div>
+                          </td>
+                          <td className="py-4 px-6 text-center">
+                            <button
+                              onClick={() => handleLiquidate(h, true)}
+                              disabled={gameState.status !== 'ACTIVE'}
+                              className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition ${
+                                gameState.status !== 'ACTIVE'
+                                  ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                                  : 'bg-purple-500/20 hover:bg-purple-500 text-purple-300 hover:text-white border border-purple-500/30 shadow-sm'
+                              }`}
+                            >
+                              Cover Short
+                            </button>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
                   );
                 })}
               </tbody>
@@ -235,6 +321,49 @@ export const Portfolio: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Pending Orders Table */}
+      {pendingOrders.length > 0 && (
+        <div className="glass-card rounded-3xl border border-slate-800/80 overflow-hidden shadow-xl mt-8">
+          <div className="p-6 bg-slate-900/60 border-b border-slate-800/80 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="w-5 h-5 text-amber-400" />
+              <h3 className="text-lg font-extrabold text-white font-['Outfit']">Pending Limit & Stop Orders ({pendingOrders.length})</h3>
+            </div>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-slate-950/60 text-[11px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-800/80">
+                  <th className="py-4 px-6">Symbol</th>
+                  <th className="py-4 px-6 text-right">Order Type</th>
+                  <th className="py-4 px-6 text-right">Target Price</th>
+                  <th className="py-4 px-6 text-right">Shares</th>
+                  <th className="py-4 px-6 text-center">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-800/60 text-sm">
+                {pendingOrders.map(order => (
+                  <tr key={order.id} className="hover:bg-slate-800/30 transition-colors">
+                    <td className="py-4 px-6 font-extrabold text-white">{order.symbol}</td>
+                    <td className="py-4 px-6 text-right font-bold text-slate-300">{order.type.replace('_', ' ')}</td>
+                    <td className="py-4 px-6 text-right font-mono font-bold text-amber-400">₹{order.targetPrice.toFixed(2)}</td>
+                    <td className="py-4 px-6 text-right font-mono text-white">{order.shares.toLocaleString('en-IN')}</td>
+                    <td className="py-4 px-6 text-center">
+                      <button
+                        onClick={() => handleCancelOrder(order.id)}
+                        className="px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition bg-rose-500/20 hover:bg-rose-500 text-rose-300 hover:text-white border border-rose-500/30 shadow-sm"
+                      >
+                        Cancel
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

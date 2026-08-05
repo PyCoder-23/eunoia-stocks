@@ -41,11 +41,14 @@ Render will run your Node.js server and keep the WebSocket connections alive for
 7. Wait a few minutes for Render to build and deploy. Once successful, you will see a URL at the top (e.g., `https://market-mayhem-backend.onrender.com`). **Save this URL.**
 
 ### Seed the Production Database
-Now that your backend is connected to Turso, you need to populate the database with the initial companies and users.
-1. In your Render dashboard, click on your Web Service.
-2. Go to the **Shell** tab (this opens a terminal into your live server).
-3. Type: `npm run seed` and press Enter.
-4. You should see a success message saying the database is seeded. (You only need to do this once).
+Since **Turso** is a cloud database, you do **NOT** need to use Render's Shell tab (which requires a paid Render plan). Your Turso cloud database has already been seeded remotely!
+
+If you ever need to re-seed or reset your production database in the future, simply run this from your local terminal:
+```bash
+cd backend
+npm run seed
+```
+This connects directly to your Turso cloud database and populates it instantly.
 
 ---
 

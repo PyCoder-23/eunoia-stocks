@@ -6,7 +6,7 @@ import { eq } from 'drizzle-orm';
 import { startMarketEngine, stopMarketEngine, calculateLeaderboard } from '../services/marketEngine.js';
 import { triggerAINews, triggerManualNews, triggerChaosEvent } from '../services/newsEngine.js';
 import { broadcastGameState, broadcastLeaderboard, getOnlineUsers } from '../sockets/socketHandler.js';
-import { createTablesIfNotExist } from '../utils/seed.js';
+import { createTablesIfNotExist, seed } from '../utils/seed.js';
 
 // --- MANUAL ROUND CONTROLS (PER IMP NOTE) ---
 export const updateGameState = async (req: Request, res: Response): Promise<void> => {
@@ -56,33 +56,9 @@ export const updateGameState = async (req: Request, res: Response): Promise<void
 export const resetCompetition = async (req: Request, res: Response): Promise<void> => {
   try {
     stopMarketEngine();
-    await createTablesIfNotExist();
-
-    // Reset all trader cash and delete portfolios/transactions/news
-    await db.delete(transactions);
-    await db.delete(portfolios);
-    await db.delete(newsEvents);
-
-    // Reset trader cash to $100,000
-    await db.update(users).set({ cash: 100000.0 }).where(eq(users.role, 'TRADER'));
-
-    // Reset company prices to initialPrice
-    const allComps = await db.select().from(companies);
-    for (const c of allComps) {
-      await db.update(companies).set({
-        currentPrice: c.initialPrice,
-        previousPrice: c.initialPrice,
-        availableShares: c.totalShares,
-      }).where(eq(companies.id, c.id));
-    }
-
-    // Reset game state
-    await db.update(gameState).set({
-      round: 0,
-      roundName: 'Competition Ready - Awaiting Start',
-      status: 'STOPPED',
-      marketTrend: 'STABLE',
-    }).where(eq(gameState.id, 'current'));
+    
+    // Re-seed database to clean pre-seeded state (wipes history, portfolios, transactions, news, and restores 10 Lakh cash for all default teams)
+    await seed(false);
 
     const newState = { id: 'current', round: 0, roundName: 'Competition Ready - Awaiting Start', status: 'STOPPED', marketTrend: 'STABLE' };
     broadcastGameState(newState);
@@ -90,8 +66,8 @@ export const resetCompetition = async (req: Request, res: Response): Promise<voi
     const latestLeaderboard = await calculateLeaderboard();
     broadcastLeaderboard(latestLeaderboard);
 
-    console.log('🔄 [ADMIN CONTROL]: Competition fully reset!');
-    res.status(200).json({ message: 'Competition reset successfully', gameState: newState });
+    console.log('🔄 [ADMIN CONTROL]: Competition fully reset to clean 10 Lakh pre-seeded state!');
+    res.status(200).json({ message: 'Competition reset successfully to clean 10 Lakh state', gameState: newState });
   } catch (error) {
     console.error('Reset competition error:', error);
     res.status(500).json({ error: 'Internal server error resetting competition' });
@@ -191,7 +167,7 @@ export const createTraderAccount = async (req: Request, res: Response): Promise<
 
     const id = `user-${username.toLowerCase().trim()}-${Date.now()}`;
     const hashedPassword = await bcrypt.hash(password, 10);
-    const cashVal = initialCash !== undefined ? parseFloat(initialCash) : 100000.0;
+    const cashVal = initialCash !== undefined ? parseFloat(initialCash) : 1000000.0;
 
     const newUser: NewUser = {
       id,
@@ -319,12 +295,12 @@ export const dispatchManualNews = async (req: Request, res: Response): Promise<v
 
 export const dispatchChaosEvent = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { type } = req.body; // 'CRASH', 'BOOM', 'BUBBLE_TECH', 'BLACK_SWAN', 'BANKING_CRISIS'
+    const { type, title, message, sector, impact } = req.body;
     if (!type) {
       res.status(400).json({ error: 'Chaos event type required' });
       return;
     }
-    await triggerChaosEvent(type);
+    await triggerChaosEvent(type, title, message, sector, impact ? parseFloat(impact) : undefined);
     res.status(200).json({ message: `Chaos event '${type}' triggered successfully!` });
   } catch (error) {
     console.error('Dispatch chaos event error:', error);

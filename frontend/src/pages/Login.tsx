@@ -42,18 +42,7 @@ export const Login: React.FC = () => {
     }
   };
 
-  const fillDemoCredentials = (role: 'TRADER' | 'ADMIN') => {
-    if (role === 'ADMIN') {
-      setUsername('admin');
-      setPassword('admin123');
-      setActiveRole('ADMIN');
-    } else {
-      setUsername('team_alpha');
-      setPassword('password123');
-      setActiveRole('TRADER');
-    }
-    setError(null);
-  };
+
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
@@ -165,29 +154,7 @@ export const Login: React.FC = () => {
             </button>
           </form>
 
-          {/* Quick Demo Credentials Assistant */}
-          <div className="mt-8 pt-6 border-t border-slate-800/80 text-center">
-            <span className="text-[11px] text-slate-400 uppercase tracking-widest font-semibold flex items-center justify-center gap-1.5 mb-3">
-              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-              Instant Demo Access
-            </span>
-            <div className="flex items-center justify-center gap-3">
-              <button
-                type="button"
-                onClick={() => fillDemoCredentials('TRADER')}
-                className="px-3 py-1.5 rounded-lg bg-slate-800/80 hover:bg-emerald-500/20 text-slate-300 hover:text-emerald-300 text-xs font-semibold border border-slate-700/60 transition"
-              >
-                Load Trader Demo (team_alpha)
-              </button>
-              <button
-                type="button"
-                onClick={() => fillDemoCredentials('ADMIN')}
-                className="px-3 py-1.5 rounded-lg bg-slate-800/80 hover:bg-purple-500/20 text-slate-300 hover:text-purple-300 text-xs font-semibold border border-slate-700/60 transition"
-              >
-                Load Admin Demo
-              </button>
-            </div>
-          </div>
+
         </div>
       </div>
     </div>

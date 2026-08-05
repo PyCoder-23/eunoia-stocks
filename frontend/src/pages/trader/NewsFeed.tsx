@@ -6,7 +6,20 @@ export const NewsFeed: React.FC = () => {
   const { newsFeed } = useSocket();
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
 
-  const categories = ['ALL', 'Technology', 'Healthcare', 'Energy', 'Banking', 'Global Market', 'Company News'];
+  const categories = [
+    'ALL',
+    'Banking and Finance',
+    'FMCG',
+    'Automobile',
+    'Information Technology',
+    'Defence',
+    'Oil and Gas',
+    'Healthcare',
+    'Metals and Mining',
+    'Telecommunications',
+    'Global Market',
+    'Company News',
+  ];
 
   const filteredNews = newsFeed.filter(news => {
     if (selectedCategory === 'ALL') return true;

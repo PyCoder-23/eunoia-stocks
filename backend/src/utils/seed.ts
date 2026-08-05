@@ -87,7 +87,7 @@ async function createTablesIfNotExist() {
   console.log('Tables verified/created successfully.');
 }
 
-async function seed() {
+async function seed(exitOnComplete = true) {
   try {
     await createTablesIfNotExist();
 
@@ -100,75 +100,36 @@ async function seed() {
     await client.execute('DELETE FROM game_state;');
 
     const now = Date.now();
-    const adminPassword = await bcrypt.hash('admin123', 10);
-    const traderPassword = await bcrypt.hash('password123', 10);
-
-    console.log('Seeding Users (Admin and 6 Demo Teams)...');
-    const usersData: schema.NewUser[] = [
-      {
-        id: 'user-admin',
-        username: 'admin',
-        password: adminPassword,
-        role: 'ADMIN',
-        teamName: 'Admin Control Center',
-        cash: 1000000.0,
-        createdAt: now,
-      },
-      {
-        id: 'user-team-alpha',
-        username: 'team_alpha',
-        password: traderPassword,
-        role: 'TRADER',
-        teamName: 'Alpha Capital',
-        cash: 1000000.0,
-        createdAt: now,
-      },
-      {
-        id: 'user-team-beta',
-        username: 'team_beta',
-        password: traderPassword,
-        role: 'TRADER',
-        teamName: 'Beta Ventures',
-        cash: 1000000.0,
-        createdAt: now,
-      },
-      {
-        id: 'user-team-gamma',
-        username: 'team_gamma',
-        password: traderPassword,
-        role: 'TRADER',
-        teamName: 'Gamma Hedge Fund',
-        cash: 1000000.0,
-        createdAt: now,
-      },
-      {
-        id: 'user-team-delta',
-        username: 'team_delta',
-        password: traderPassword,
-        role: 'TRADER',
-        teamName: 'Delta Investments',
-        cash: 1000000.0,
-        createdAt: now,
-      },
-      {
-        id: 'user-team-epsilon',
-        username: 'team_epsilon',
-        password: traderPassword,
-        role: 'TRADER',
-        teamName: 'Epsilon Traders',
-        cash: 1000000.0,
-        createdAt: now,
-      },
-      {
-        id: 'user-team-zeta',
-        username: 'team_zeta',
-        password: traderPassword,
-        role: 'TRADER',
-        teamName: 'Zeta Financial Group',
-        cash: 1000000.0,
-        createdAt: now,
-      },
+    const accounts = [
+      { username: 'admin_eunoia', plainPass: 'Admin@Eunoia2026!', role: 'ADMIN', teamName: 'Eunoia Administration' },
+      { username: 'apex_capital', plainPass: 'ApexCap2026!', role: 'TRADER', teamName: 'Apex Capital Partners' },
+      { username: 'vanguard_inv', plainPass: 'VanGuard$99', role: 'TRADER', teamName: 'Vanguard Investments' },
+      { username: 'quantum_hedge', plainPass: 'QuantHedge#1', role: 'TRADER', teamName: 'Quantum Hedge Fund' },
+      { username: 'stellar_wealth', plainPass: 'StellarWealth7', role: 'TRADER', teamName: 'Stellar Wealth Management' },
+      { username: 'nexus_financial', plainPass: 'NexusFin@26', role: 'TRADER', teamName: 'Nexus Financial Group' },
+      { username: 'horizon_equities', plainPass: 'HorizonEq8!', role: 'TRADER', teamName: 'Horizon Equities' },
+      { username: 'pinnacle_asset', plainPass: 'PinnacleAsset#', role: 'TRADER', teamName: 'Pinnacle Asset Management' },
+      { username: 'crestview_partners', plainPass: 'CrestView44$', role: 'TRADER', teamName: 'Crestview Partners' },
+      { username: 'summit_trading', plainPass: 'SummitTrade2!', role: 'TRADER', teamName: 'Summit Trading Firm' },
+      { username: 'meridian_capital', plainPass: 'MeridianCap88', role: 'TRADER', teamName: 'Meridian Capital' },
+      { username: 'orion_investment', plainPass: 'OrionInvest$', role: 'TRADER', teamName: 'Orion Investment Bank' }
     ];
+
+    console.log('Seeding Users (1 Admin and 11 Professional Teams)...');
+    const usersData: schema.NewUser[] = [];
+    
+    for (const acc of accounts) {
+      const hashedPassword = await bcrypt.hash(acc.plainPass, 10);
+      usersData.push({
+        id: `user-${acc.username}`,
+        username: acc.username,
+        password: hashedPassword,
+        role: acc.role,
+        teamName: acc.teamName,
+        cash: 1000000.0,
+        createdAt: now,
+      });
+    }
 
     for (const u of usersData) {
       await db.insert(schema.users).values(u);
@@ -176,25 +137,25 @@ async function seed() {
 
     console.log('Seeding Indian Companies...');
     const companiesData: schema.NewCompany[] = [
-      // BFSI
+      // Banking and Finance
       {
-        id: 'comp-hdfc', name: 'HDFC Bank', symbol: 'HDFCBANK', sector: 'BFSI', description: "India's largest private sector bank by assets.",
+        id: 'comp-hdfc', name: 'HDFC Bank', symbol: 'HDFCBANK', sector: 'Banking and Finance', description: "India's largest private sector bank by assets.",
         initialPrice: 1650.0, currentPrice: 1650.0, previousPrice: 1650.0, totalShares: 100000, availableShares: 100000, volatility: 0.015, createdAt: now,
       },
       {
-        id: 'comp-icici', name: 'ICICI Bank', symbol: 'ICICIBANK', sector: 'BFSI', description: 'Multinational banking and financial services company.',
+        id: 'comp-icici', name: 'ICICI Bank', symbol: 'ICICIBANK', sector: 'Banking and Finance', description: 'Multinational banking and financial services company.',
         initialPrice: 1100.0, currentPrice: 1100.0, previousPrice: 1100.0, totalShares: 120000, availableShares: 120000, volatility: 0.018, createdAt: now,
       },
       {
-        id: 'comp-sbi', name: 'State Bank of India', symbol: 'SBIN', sector: 'BFSI', description: 'Largest Indian statutory body for banking and financial services.',
+        id: 'comp-sbi', name: 'State Bank of India', symbol: 'SBIN', sector: 'Banking and Finance', description: 'Largest Indian statutory body for banking and financial services.',
         initialPrice: 850.0, currentPrice: 850.0, previousPrice: 850.0, totalShares: 150000, availableShares: 150000, volatility: 0.02, createdAt: now,
       },
       {
-        id: 'comp-bajajfin', name: 'Bajaj Finance', symbol: 'BAJFINANCE', sector: 'BFSI', description: 'Leading non-banking financial company focused on lending and wealth management.',
+        id: 'comp-bajajfin', name: 'Bajaj Finance', symbol: 'BAJFINANCE', sector: 'Banking and Finance', description: 'Leading non-banking financial company focused on lending and wealth management.',
         initialPrice: 6500.0, currentPrice: 6500.0, previousPrice: 6500.0, totalShares: 50000, availableShares: 50000, volatility: 0.025, createdAt: now,
       },
       {
-        id: 'comp-lichsg', name: 'Lic Housing Finance', symbol: 'LICHSGFIN', sector: 'BFSI', description: 'One of the largest housing finance companies in India.',
+        id: 'comp-lichsg', name: 'Lic Housing Finance', symbol: 'LICHSGFIN', sector: 'Banking and Finance', description: 'One of the largest housing finance companies in India.',
         initialPrice: 600.0, currentPrice: 600.0, previousPrice: 600.0, totalShares: 80000, availableShares: 80000, volatility: 0.022, createdAt: now,
       },
       // FMCG
@@ -241,23 +202,23 @@ async function seed() {
       },
       // Information Technology
       {
-        id: 'comp-tcs', name: 'Tata Consultancy Services', symbol: 'TCS', sector: 'IT', description: 'Global leader in IT services, consulting, and business solutions.',
+        id: 'comp-tcs', name: 'Tata Consultancy Services', symbol: 'TCS', sector: 'Information Technology', description: 'Global leader in IT services, consulting, and business solutions.',
         initialPrice: 3800.0, currentPrice: 3800.0, previousPrice: 3800.0, totalShares: 100000, availableShares: 100000, volatility: 0.015, createdAt: now,
       },
       {
-        id: 'comp-infosys', name: 'Infosys', symbol: 'INFY', sector: 'IT', description: 'Multinational corporation providing business consulting and IT services.',
+        id: 'comp-infosys', name: 'Infosys', symbol: 'INFY', sector: 'Information Technology', description: 'Multinational corporation providing business consulting and IT services.',
         initialPrice: 1400.0, currentPrice: 1400.0, previousPrice: 1400.0, totalShares: 120000, availableShares: 120000, volatility: 0.018, createdAt: now,
       },
       {
-        id: 'comp-hcl', name: 'HCLTech', symbol: 'HCLTECH', sector: 'IT', description: 'Global technology company specializing in IT services and consulting.',
+        id: 'comp-hcl', name: 'HCLTech', symbol: 'HCLTECH', sector: 'Information Technology', description: 'Global technology company specializing in IT services and consulting.',
         initialPrice: 1300.0, currentPrice: 1300.0, previousPrice: 1300.0, totalShares: 95000, availableShares: 95000, volatility: 0.02, createdAt: now,
       },
       {
-        id: 'comp-wipro', name: 'Wipro', symbol: 'WIPRO', sector: 'IT', description: 'Leading technology services and consulting company.',
+        id: 'comp-wipro', name: 'Wipro', symbol: 'WIPRO', sector: 'Information Technology', description: 'Leading technology services and consulting company.',
         initialPrice: 450.0, currentPrice: 450.0, previousPrice: 450.0, totalShares: 140000, availableShares: 140000, volatility: 0.022, createdAt: now,
       },
       {
-        id: 'comp-techm', name: 'Tech Mahindra', symbol: 'TECHM', sector: 'IT', description: 'Provides IT networking technology solutions and BPO to the telecommunications industry.',
+        id: 'comp-techm', name: 'Tech Mahindra', symbol: 'TECHM', sector: 'Information Technology', description: 'Provides IT networking technology solutions and BPO to the telecommunications industry.',
         initialPrice: 1250.0, currentPrice: 1250.0, previousPrice: 1250.0, totalShares: 80000, availableShares: 80000, volatility: 0.025, createdAt: now,
       },
       // Defence
@@ -281,7 +242,7 @@ async function seed() {
         id: 'comp-cochin', name: 'Cochin Shipyard', symbol: 'COCHINSHIP', sector: 'Defence', description: 'Largest shipbuilding and maintenance facility in India.',
         initialPrice: 1100.0, currentPrice: 1100.0, previousPrice: 1100.0, totalShares: 55000, availableShares: 55000, volatility: 0.032, createdAt: now,
       },
-      // Healthcare & Pharmaceuticals
+      // Healthcare
       {
         id: 'comp-sunpharma', name: 'Sun Pharma', symbol: 'SUNPHARMA', sector: 'Healthcare', description: 'Largest Indian pharmaceutical company by market capitalization.',
         initialPrice: 1550.0, currentPrice: 1550.0, previousPrice: 1550.0, totalShares: 90000, availableShares: 90000, volatility: 0.02, createdAt: now,
@@ -302,63 +263,67 @@ async function seed() {
         id: 'comp-divis', name: "Divi's Laboratories", symbol: 'DIVISLAB', sector: 'Healthcare', description: 'Producer of active pharmaceutical ingredients (APIs) and intermediates.',
         initialPrice: 3800.0, currentPrice: 3800.0, previousPrice: 3800.0, totalShares: 45000, availableShares: 45000, volatility: 0.028, createdAt: now,
       },
-      // Oil & Gas
+      // Oil and Gas
       {
-        id: 'comp-reliance', name: 'Reliance Industries', symbol: 'RELIANCE', sector: 'Oil & Gas', description: "India's largest conglomerate with major interests in energy and petrochemicals.",
+        id: 'comp-reliance', name: 'Reliance Industries', symbol: 'RELIANCE', sector: 'Oil and Gas', description: "India's largest conglomerate with major interests in energy and petrochemicals.",
         initialPrice: 2950.0, currentPrice: 2950.0, previousPrice: 2950.0, totalShares: 150000, availableShares: 150000, volatility: 0.015, createdAt: now,
       },
       {
-        id: 'comp-ongc', name: 'ONGC', symbol: 'ONGC', sector: 'Oil & Gas', description: 'State-owned oil and gas explorer and producer.',
+        id: 'comp-ongc', name: 'ONGC', symbol: 'ONGC', sector: 'Oil and Gas', description: 'State-owned oil and gas explorer and producer.',
         initialPrice: 275.0, currentPrice: 275.0, previousPrice: 275.0, totalShares: 200000, availableShares: 200000, volatility: 0.02, createdAt: now,
       },
       {
-        id: 'comp-ioc', name: 'Indian Oil Corp', symbol: 'IOC', sector: 'Oil & Gas', description: 'Largest commercial oil company in India.',
+        id: 'comp-ioc', name: 'Indian Oil Corp', symbol: 'IOC', sector: 'Oil and Gas', description: 'Largest commercial oil company in India.',
         initialPrice: 160.0, currentPrice: 160.0, previousPrice: 160.0, totalShares: 250000, availableShares: 250000, volatility: 0.018, createdAt: now,
       },
       {
-        id: 'comp-bpcl', name: 'Bharat Petroleum', symbol: 'BPCL', sector: 'Oil & Gas', description: 'Major state-owned oil and gas refining and marketing company.',
+        id: 'comp-bpcl', name: 'Bharat Petroleum', symbol: 'BPCL', sector: 'Oil and Gas', description: 'Major state-owned oil and gas refining and marketing company.',
         initialPrice: 600.0, currentPrice: 600.0, previousPrice: 600.0, totalShares: 110000, availableShares: 110000, volatility: 0.022, createdAt: now,
       },
       {
-        id: 'comp-hpcl', name: 'Hindustan Petroleum', symbol: 'HINDPETRO', sector: 'Oil & Gas', description: 'Government-owned oil and natural gas corporation.',
+        id: 'comp-hpcl', name: 'Hindustan Petroleum', symbol: 'HINDPETRO', sector: 'Oil and Gas', description: 'Government-owned oil and natural gas corporation.',
         initialPrice: 450.0, currentPrice: 450.0, previousPrice: 450.0, totalShares: 130000, availableShares: 130000, volatility: 0.025, createdAt: now,
       },
-      // Metals & Mining
+      // Metals and Mining
       {
-        id: 'comp-tatasteel', name: 'Tata Steel', symbol: 'TATASTEEL', sector: 'Metals & Mining', description: 'Among the top steel producing companies in the world.',
+        id: 'comp-tatasteel', name: 'Tata Steel', symbol: 'TATASTEEL', sector: 'Metals and Mining', description: 'Among the top steel producing companies in the world.',
         initialPrice: 165.0, currentPrice: 165.0, previousPrice: 165.0, totalShares: 250000, availableShares: 250000, volatility: 0.028, createdAt: now,
       },
       {
-        id: 'comp-jswsteel', name: 'JSW Steel', symbol: 'JSWSTEEL', sector: 'Metals & Mining', description: 'Fastest-growing steel company in India.',
+        id: 'comp-jswsteel', name: 'JSW Steel', symbol: 'JSWSTEEL', sector: 'Metals and Mining', description: 'Fastest-growing steel company in India.',
         initialPrice: 850.0, currentPrice: 850.0, previousPrice: 850.0, totalShares: 120000, availableShares: 120000, volatility: 0.03, createdAt: now,
       },
       {
-        id: 'comp-hindalco', name: 'Hindalco Industries', symbol: 'HINDALCO', sector: 'Metals & Mining', description: 'Aluminium and copper manufacturing company.',
+        id: 'comp-hindalco', name: 'Hindalco Industries', symbol: 'HINDALCO', sector: 'Metals and Mining', description: 'Aluminium and copper manufacturing company.',
         initialPrice: 580.0, currentPrice: 580.0, previousPrice: 580.0, totalShares: 140000, availableShares: 140000, volatility: 0.032, createdAt: now,
       },
       {
-        id: 'comp-vedanta', name: 'Vedanta', symbol: 'VEDL', sector: 'Metals & Mining', description: 'Globally diversified natural resources company.',
+        id: 'comp-vedanta', name: 'Vedanta', symbol: 'VEDL', sector: 'Metals and Mining', description: 'Globally diversified natural resources company.',
         initialPrice: 380.0, currentPrice: 380.0, previousPrice: 380.0, totalShares: 160000, availableShares: 160000, volatility: 0.035, createdAt: now,
       },
       {
-        id: 'comp-nmdc', name: 'NMDC', symbol: 'NMDC', sector: 'Metals & Mining', description: "India's single largest iron ore producer.",
+        id: 'comp-nmdc', name: 'NMDC', symbol: 'NMDC', sector: 'Metals and Mining', description: "India's single largest iron ore producer.",
         initialPrice: 210.0, currentPrice: 210.0, previousPrice: 210.0, totalShares: 180000, availableShares: 180000, volatility: 0.03, createdAt: now,
       },
       {
-        id: 'comp-jindal', name: 'Jindal Steel', symbol: 'JINDALSTEL', sector: 'Metals & Mining', description: 'Industrial powerhouse with dominant presence in steel and power.',
+        id: 'comp-jindal', name: 'Jindal Steel', symbol: 'JINDALSTEL', sector: 'Metals and Mining', description: 'Industrial powerhouse with dominant presence in steel and power.',
         initialPrice: 820.0, currentPrice: 820.0, previousPrice: 820.0, totalShares: 90000, availableShares: 90000, volatility: 0.032, createdAt: now,
       },
-      // Telecom
+      // Telecommunications
       {
-        id: 'comp-bharti', name: 'Bharti Airtel', symbol: 'BHARTIARTL', sector: 'Telecom', description: 'Global telecommunications services company.',
+        id: 'comp-bharti', name: 'Bharti Airtel', symbol: 'AIRTEL', sector: 'Telecommunications', description: 'Global telecommunications services company.',
         initialPrice: 1250.0, currentPrice: 1250.0, previousPrice: 1250.0, totalShares: 110000, availableShares: 110000, volatility: 0.02, createdAt: now,
       },
       {
-        id: 'comp-vodafone', name: 'Vodafone Idea', symbol: 'IDEA', sector: 'Telecom', description: 'Pan-India telecom service provider.',
+        id: 'comp-vodafone', name: 'Vodafone Idea', symbol: 'VI', sector: 'Telecommunications', description: 'Pan-India telecom service provider.',
         initialPrice: 15.0, currentPrice: 15.0, previousPrice: 15.0, totalShares: 500000, availableShares: 500000, volatility: 0.05, createdAt: now,
       },
       {
-        id: 'comp-tejas', name: 'Tejas Networks', symbol: 'TEJASNET', sector: 'Telecom', description: 'Optical and data networking products company.',
+        id: 'comp-tatacomm', name: 'Tata Communications', symbol: 'TATACOMM', sector: 'Telecommunications', description: 'Global telecommunications and digital infrastructure services provider.',
+        initialPrice: 1950.0, currentPrice: 1950.0, previousPrice: 1950.0, totalShares: 70000, availableShares: 70000, volatility: 0.02, createdAt: now,
+      },
+      {
+        id: 'comp-tejas', name: 'Tejas Networks', symbol: 'TEJASNET', sector: 'Telecommunications', description: 'Optical and data networking products company.',
         initialPrice: 800.0, currentPrice: 800.0, previousPrice: 800.0, totalShares: 60000, availableShares: 60000, volatility: 0.035, createdAt: now,
       },
     ];
@@ -376,11 +341,17 @@ async function seed() {
       marketTrend: 'STABLE',
     });
 
-    console.log('✅ Database seeding completed successfully! Admin login: admin / admin123');
-    process.exit(0);
+    console.log('✅ Database seeding completed successfully! Teams generated.');
+    if (exitOnComplete) {
+      process.exit(0);
+    }
   } catch (error) {
     console.error('❌ Seeding failed:', error);
-    process.exit(1);
+    if (exitOnComplete) {
+      process.exit(1);
+    } else {
+      throw error;
+    }
   }
 }
 

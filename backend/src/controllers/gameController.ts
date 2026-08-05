@@ -86,11 +86,13 @@ export const getUserPortfolioDetail = async (req: Request, res: Response): Promi
     const compMap = new Map();
     allComps.forEach(c => compMap.set(c.id, c));
 
-    let totalPortfolioValue = 0.0;
-    let totalInvested = 0.0;
+    let totalLongValue = 0.0;
+    let totalLongInvested = 0.0;
+    let totalShortLiabilities = 0.0;
+    let totalShortProceeds = 0.0;
 
     const holdings = userPorts
-      .filter(p => p.shares > 0)
+      .filter(p => p.shares > 0 || p.shortShares > 0)
       .map(p => {
         const comp = compMap.get(p.companyId);
         const currentPrice = comp ? comp.currentPrice : 0;
@@ -99,11 +101,18 @@ export const getUserPortfolioDetail = async (req: Request, res: Response): Promi
         const sector = comp ? comp.sector : 'General';
         const currentValue = parseFloat((p.shares * currentPrice).toFixed(2));
         const investedValue = parseFloat((p.shares * p.averagePrice).toFixed(2));
-        const unrealizedPL = parseFloat((currentValue - investedValue).toFixed(2));
-        const plPercentage = investedValue > 0 ? parseFloat(((unrealizedPL / investedValue) * 100).toFixed(2)) : 0.0;
+        
+        const shortLiabilities = parseFloat((p.shortShares * currentPrice).toFixed(2));
+        const shortProceeds = parseFloat((p.shortShares * p.shortAveragePrice).toFixed(2));
 
-        totalPortfolioValue += currentValue;
-        totalInvested += investedValue;
+        const unrealizedPL = parseFloat(((currentValue - investedValue) + (shortProceeds - shortLiabilities)).toFixed(2));
+        const absoluteInvested = investedValue + shortProceeds;
+        const plPercentage = absoluteInvested > 0 ? parseFloat(((unrealizedPL / absoluteInvested) * 100).toFixed(2)) : 0.0;
+
+        totalLongValue += currentValue;
+        totalLongInvested += investedValue;
+        totalShortLiabilities += shortLiabilities;
+        totalShortProceeds += shortProceeds;
 
         return {
           id: p.id,
@@ -113,16 +122,22 @@ export const getUserPortfolioDetail = async (req: Request, res: Response): Promi
           sector,
           shares: p.shares,
           averagePrice: parseFloat(p.averagePrice.toFixed(2)),
+          shortShares: p.shortShares,
+          shortAveragePrice: parseFloat(p.shortAveragePrice.toFixed(2)),
           currentPrice: parseFloat(currentPrice.toFixed(2)),
           currentValue,
           investedValue,
+          shortLiabilities,
+          shortProceeds,
           unrealizedPL,
           plPercentage,
         };
       });
 
-    const netWorth = parseFloat((user.cash + totalPortfolioValue).toFixed(2));
-    const totalUnrealizedPL = parseFloat((totalPortfolioValue - totalInvested).toFixed(2));
+    const netWorth = parseFloat((user.cash + totalLongValue - totalShortLiabilities).toFixed(2));
+    const totalUnrealizedPL = parseFloat(((totalLongValue - totalLongInvested) + (totalShortProceeds - totalShortLiabilities)).toFixed(2));
+    const netPortfolioValue = parseFloat((totalLongValue - totalShortLiabilities).toFixed(2));
+    const totalInvestedDisplay = parseFloat((totalLongInvested + totalShortProceeds).toFixed(2));
 
     res.status(200).json({
       user: {
@@ -133,9 +148,9 @@ export const getUserPortfolioDetail = async (req: Request, res: Response): Promi
       },
       summary: {
         cash: parseFloat(user.cash.toFixed(2)),
-        portfolioValue: parseFloat(totalPortfolioValue.toFixed(2)),
+        portfolioValue: netPortfolioValue,
         netWorth,
-        totalInvested: parseFloat(totalInvested.toFixed(2)),
+        totalInvested: totalInvestedDisplay,
         totalUnrealizedPL,
       },
       holdings,
