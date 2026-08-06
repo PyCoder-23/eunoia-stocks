@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
 import { useSocket } from '../../context/SocketContext';
-import { IndianRupee, Briefcase, Award, TrendingUp, Newspaper, Activity, ChevronRight } from 'lucide-react';
+import { IndianRupee, Briefcase, TrendingUp, Newspaper, Activity, ChevronRight } from 'lucide-react';
 
 export const Dashboard: React.FC = () => {
   const { user } = useAuth();
@@ -33,9 +33,7 @@ export const Dashboard: React.FC = () => {
   const myRank = leaderboard.find(l => l.userId === user?.id)?.rank || 'N/A';
   const netWorth = (user?.cash || 0) + portfolioSummary.portfolioValue;
   const isPositivePL = portfolioSummary.totalUnrealizedPL >= 0;
-
   const topNews = newsFeed.slice(0, 3);
-  const topTeams = leaderboard.slice(0, 5);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
@@ -143,70 +141,9 @@ export const Dashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* Grid: Mini Leaderboard & Breaking News */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left 2 Cols: Mini Leaderboard */}
-        <div className="lg:col-span-2 glass-panel p-6 rounded-3xl border border-slate-800/80">
-          <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-800/80">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-purple-500/15 border border-purple-500/30 flex items-center justify-center text-purple-400">
-                <Award className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="text-lg font-extrabold text-white font-['Outfit']">Live Top Competitors</h3>
-                <span className="text-xs text-slate-400">Sorted by Net Worth in real time</span>
-              </div>
-            </div>
-            <Link to="/leaderboard" className="text-xs font-bold text-emerald-400 hover:text-emerald-300 flex items-center gap-1">
-              <span>Full Leaderboard</span>
-              <ChevronRight className="w-4 h-4" />
-            </Link>
-          </div>
-
-          <div className="space-y-3">
-            {topTeams.map((team) => {
-              const isMe = team.userId === user?.id;
-              return (
-                <div
-                  key={team.userId}
-                  className={`flex items-center justify-between p-4 rounded-2xl transition-all border ${
-                    isMe
-                      ? 'bg-emerald-500/15 border-emerald-500/40 shadow-lg shadow-emerald-500/10'
-                      : 'bg-slate-900/60 border-slate-800/60 hover:bg-slate-800/40'
-                  }`}
-                >
-                  <div className="flex items-center gap-4">
-                    <span className={`w-8 h-8 rounded-xl flex items-center justify-center font-extrabold text-sm ${
-                      team.rank === 1 ? 'bg-amber-400 text-slate-950 shadow-md shadow-amber-400/30' :
-                      team.rank === 2 ? 'bg-slate-300 text-slate-950' :
-                      team.rank === 3 ? 'bg-amber-700 text-white' : 'bg-slate-800 text-slate-400'
-                    }`}>
-                      #{team.rank}
-                    </span>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-extrabold text-white font-['Outfit']">{team.teamName}</span>
-                        {isMe && <span className="px-2 py-0.5 rounded bg-emerald-400/20 text-emerald-300 text-[10px] font-bold uppercase">You</span>}
-                      </div>
-                      <span className="text-xs text-slate-400 font-mono">₹{team.cash.toLocaleString('en-IN', { maximumFractionDigits: 0 })} cash</span>
-                    </div>
-                  </div>
-
-                  <div className="text-right">
-                    <span className="block text-base font-extrabold text-white font-mono">
-                      ₹{team.netWorth.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </span>
-                    <span className={`text-xs font-bold ${team.profitLoss >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                      {team.profitLoss >= 0 ? '+' : ''}₹{team.profitLoss.toLocaleString('en-IN', { maximumFractionDigits: 0 })} P/L
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Right Col: Recent Breaking News */}
+      {/* Breaking News Section */}
+      <div className="grid grid-cols-1 gap-8">
+        {/* Recent Breaking News */}
         <div className="glass-panel p-6 rounded-3xl border border-slate-800/80 flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-800/80">

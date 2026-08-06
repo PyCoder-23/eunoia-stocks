@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
-import { ShieldAlert, TrendingUp, Award, Newspaper, LogOut, LayoutDashboard, Briefcase, Activity, Menu, X } from 'lucide-react';
+import { ShieldAlert, TrendingUp, Newspaper, LogOut, LayoutDashboard, Briefcase, Activity, Menu, X } from 'lucide-react';
 
 export const Navbar: React.FC = () => {
   const { user, logout } = useAuth();
@@ -18,7 +18,6 @@ export const Navbar: React.FC = () => {
     { name: 'Market', path: '/market', icon: TrendingUp },
     { name: 'Portfolio', path: '/portfolio', icon: Briefcase },
     { name: 'News Feed', path: '/news', icon: Newspaper },
-    { name: 'Leaderboard', path: '/leaderboard', icon: Award },
     { name: 'History', path: '/history', icon: Activity },
   ];
 

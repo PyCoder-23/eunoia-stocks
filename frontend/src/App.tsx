@@ -10,7 +10,6 @@ import { Dashboard } from './pages/trader/Dashboard';
 import { StockMarket } from './pages/trader/StockMarket';
 import { Portfolio } from './pages/trader/Portfolio';
 import { NewsFeed } from './pages/trader/NewsFeed';
-import { LeaderboardPage } from './pages/trader/LeaderboardPage';
 import { TransactionHistory } from './pages/trader/TransactionHistory';
 import { AdminDashboard } from './pages/admin/AdminDashboard';
 
@@ -100,16 +99,7 @@ export const App: React.FC = () => {
           </ProtectedRoute>
         }
       />
-      <Route
-        path="/leaderboard"
-        element={
-          <ProtectedRoute requireRole="TRADER">
-            <MainLayout>
-              <LeaderboardPage />
-            </MainLayout>
-          </ProtectedRoute>
-        }
-      />
+
       <Route
         path="/history"
         element={
