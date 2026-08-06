@@ -218,6 +218,22 @@ export const createOrder = async (req: Request, res: Response): Promise<void> =>
       return;
     }
     
+    const comp = compList[0];
+    
+    // Prevent illogical orders that would trigger instantly
+    if (type === 'STOP_LOSS' && target >= comp.currentPrice) {
+      res.status(400).json({ error: `Stop Loss target (₹${target}) must be LOWER than current price (₹${comp.currentPrice}). To sell at a profit, use LIMIT_SELL.` });
+      return;
+    }
+    if (type === 'LIMIT_SELL' && target <= comp.currentPrice) {
+      res.status(400).json({ error: `Limit Sell target (₹${target}) must be HIGHER than current price (₹${comp.currentPrice}).` });
+      return;
+    }
+    if (type === 'LIMIT_BUY' && target >= comp.currentPrice) {
+      res.status(400).json({ error: `Limit Buy target (₹${target}) must be LOWER than current price (₹${comp.currentPrice}).` });
+      return;
+    }
+    
     const newOrder: NewOrder = {
       id: `ord-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
       userId: req.user.id,
