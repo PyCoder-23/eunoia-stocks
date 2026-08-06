@@ -117,7 +117,7 @@ export const Navbar: React.FC = () => {
                       {user.teamName}
                     </span>
                     <span className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold block truncate">
-                      {user.role === 'ADMIN' ? 'Admin' : `Rank #${myLeaderboardItem?.rank || '-'}`}
+                      {user.role === 'ADMIN' ? 'Admin' : 'Trader Team'}
                     </span>
                   </div>
 

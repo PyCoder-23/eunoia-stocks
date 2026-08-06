@@ -30,7 +30,7 @@ export const Dashboard: React.FC = () => {
     fetchMyPortfolio();
   }, [user, companies]); // re-fetch when prices update
 
-  const myRank = leaderboard.find(l => l.userId === user?.id)?.rank || 'N/A';
+
   const netWorth = (user?.cash || 0) + portfolioSummary.portfolioValue;
   const isPositivePL = portfolioSummary.totalUnrealizedPL >= 0;
   const topNews = newsFeed.slice(0, 3);
@@ -46,9 +46,7 @@ export const Dashboard: React.FC = () => {
             <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs font-extrabold uppercase tracking-wider">
               {user?.teamName || 'Competing Team'}
             </span>
-            <span className="px-3 py-1 rounded-full bg-slate-800 text-slate-300 text-xs font-semibold">
-              Rank #{myRank}
-            </span>
+
           </div>
           <h1 className="text-3xl sm:text-4xl font-extrabold text-white font-['Outfit'] tracking-tight">
             Welcome to the Competition Floor
